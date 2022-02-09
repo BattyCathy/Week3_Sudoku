@@ -20,7 +20,7 @@ import java.util.Scanner;
 import java.util.Set;
 import static java.lang.Math.sqrt;
 
-public class SudokuBoardV2 {
+public class MySudokuBoard {
     //2D Array [row][column] of cells on our Sudoku Board
     private final char[][] CELLS;
     //Number of cells along the edges of our board
@@ -34,7 +34,7 @@ public class SudokuBoardV2 {
     //Constructor method. Takes filePath String parameter and reads file into board.
 
     //TODO: Implement isValid logic ensuring the number of cells in the input file is and int^4
-    public SudokuBoardV2(String filePath) throws FileNotFoundException {
+    public MySudokuBoard(String filePath) throws FileNotFoundException {
         //New Scanner object to read our text file
         Scanner file = new Scanner(new File(filePath));
         //Empty String to store lines from our file
@@ -174,7 +174,7 @@ public class SudokuBoardV2 {
 
     //If String is larger than lineLength, the method does nothing, simply returning the original String
 
-    public String formatCenter(String s, int lineLength) {
+    private String formatCenter(String s, int lineLength) {
         int diff = lineLength - s.length();
         if (diff > 0) {
 
@@ -188,15 +188,21 @@ public class SudokuBoardV2 {
     //toString for formatting individual cells.
 
     //Original implementation with default parameters for lhs "[" and rhs "]"
-    public String cellToString(char cell) {
-        String lhs = "[";
-        String rhs = "]";
-        return lhs + cell + rhs;
+    private String cellToString(char cell) {
+        return cellToString(cell, "[", "]");
     }
 
     //Overloaded implementation offering custom parameters for lhs and rhs
-    public String cellToString(char cell, String lhs, String rhs) {
+    private String cellToString(char cell, String lhs, String rhs) {
         return lhs + cell + rhs;
+    }
+
+    public boolean isValid() {
+        return false;
+    }
+
+    public boolean isSolved() {
+        return false;
     }
 
 
