@@ -1,6 +1,8 @@
+import java.io.FileNotFoundException;
+
 public class SudokuCheckerEngineV2 {
 
-   public static void main(String[] args) {
+   public static void main(String[] args) throws FileNotFoundException {
       // Note that here I am calling the board object MySudokuBoard
       // if you named your class something different, you should
       // find and replace all `MySudokuBoard` with your class name
