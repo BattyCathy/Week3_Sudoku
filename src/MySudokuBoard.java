@@ -1,7 +1,17 @@
+
+
+import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.*;
+
+import static java.lang.Math.sqrt;
+
 /**
  * @author Austin Roach
  * CS143
- * Thu, Feb 3, 2021
+ * Thu, Feb 3, 2022
  *
  * Sudoku: Week 1 of 3
  *
@@ -13,54 +23,49 @@
  * Core Topics: Collections, Set/HashSet, Map/HashMap, Multidimensional Arrays, File Processing, UX/Accessibility
  */
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.Set;
-import static java.lang.Math.sqrt;
-
 public class MySudokuBoard {
     //2D Array [row][column] of cells on our Sudoku Board
-    private final char[][] CELLS;
+    private char[][] CELLS;
     //Number of cells along the edges of our board
     private final int SIDE_LENGTH;
     //Sidelength of our sub squares, number of sub squares per side, fourth root of the total number of cells on our board
     private final int ROOT;
 
     //Character used to indicate unsolved cells. Completely cosmetic, change it as you wish. Does not affect game logic.
-    private final char NIL_CHAR = '=';
+    private final char NIL_CHAR = '0';
 
     //Constructor method. Takes filePath String parameter and reads file into board.
 
-    //TODO: Implement isValid logic ensuring the number of cells in the input file is and int^4
     public MySudokuBoard(String filePath) throws FileNotFoundException {
-        //New Scanner object to read our text file
-        Scanner file = new Scanner(new File(filePath));
-        //Empty String to store lines from our file
-        String board = "";
-        //store all lines from file into board String
-        while (file.hasNextLine()) {
-            board += file.nextLine();
-        }
+        String board = getString(filePath);
         //A sudoku board has side lengths equal to the square root of the total number of cells
-        SIDE_LENGTH = (int) sqrt(board.length());
+
         //Sidelength of a sub square. The fourth root of the total number of squares.
-        ROOT = (int) sqrt(SIDE_LENGTH);
+
         //2D array of cells. Indices are row and column respectively. Because a sudoku game must be "super-square",
         //the same size parameter may be passed to both fields on construction.
-        CELLS = new char[SIDE_LENGTH][SIDE_LENGTH];
+
+            SIDE_LENGTH = (int) sqrt(board.length());
+            CELLS = populateMatrix(board);
+            ROOT = (int) sqrt(SIDE_LENGTH);
+
+
 
         //Create new set of possible numbers for our Sudoku game - equal to ROOT^2, sqrt(total number of cells), or SIDE_LENGTH
         //Currently, this is being used to sort "answered" cells from null cells. It will likely be useful later on when
         //implementing game logic and testing for valid boards
 
+
+    }
+
+    private char[][] populateMatrix(String board) {
         //Set used because each number is unique
-        Set<String> numSet = new HashSet<String>();
+        Set<Character> numSet = new HashSet<>();
+        char[][] CELLS = new char[SIDE_LENGTH][SIDE_LENGTH];
 
         //We want the set of integers starting at 1 up to and including SIDE_LENGTH.
-        for (int i = 1; i <= SIDE_LENGTH; i++) {
-            numSet.add(String.valueOf((i)));
+        for (int i = SIDE_LENGTH; i > 0; i--) {
+            numSet.add((char) (i));
         }
 
         //Copy values from board String to CELLS 2D char array
@@ -75,16 +80,35 @@ public class MySudokuBoard {
                 //we advance to the next row.
 
                 //This logic is achieved by the following: 2dArray[row][column] = 1dArray[(row * COLUMN_MAX_VALUE) + column]
-                CELLS[i][j] = board.charAt( (i * SIDE_LENGTH) + j );
-                //If the newly added character is not  contained in our number set (i.e. 0, !, *, c, etcetera), we will
-                //replace it with our *cosmetic* NIL_CHAR
-                if (! numSet.contains(String.valueOf(CELLS[i][j])) ) {
+                char cell = board.charAt( (i * SIDE_LENGTH) + j );
+                if (numSet.contains(cell)) {
+                    CELLS[i][j] = cell;
+                } else {
                     CELLS[i][j] = NIL_CHAR;
                 }
+
+                //If the newly added character is not  contained in our number set (i.e. 0, !, *, c, etcetera), we will
+                //replace it with our *cosmetic* NIL_CHAR
+
             }
 
         }
+        return CELLS;
     }
+
+    @NotNull
+    private String getString(String filePath) throws FileNotFoundException {
+        //New Scanner object to read our text file
+        Scanner file = new Scanner(new File(filePath));
+        //Empty String to store lines from our file
+        String string = "";
+        //store all lines from file into board String
+        while (file.hasNextLine()) {
+            string += file.nextLine();
+        }
+        return string;
+    }
+
 
     public String toString() {
         //declare empty String for the (ROOT + 1) barriers between our ROOT number of sub squares.
@@ -125,7 +149,7 @@ public class MySudokuBoard {
 
             //We want to create a partition across an entire row every three rows starting at row 0. This is achieved
             //through use of the modulus operand. Let's say that ROOT = 3. Our first row is index 0. 0 % 3 (or any number
-            //for that matter is equal to zero, thus satisfying our if condition and adding the subRowWall to our String.
+            //for that matter) is equal to zero, thus satisfying our if condition and adding the subRowWall to our String.
 
             //The next row is at index 1. 1 % 3 is not equal to 0, so the condition does not execute. Our next index, 2,
             //also does not satisfy the condition, as 2 % 3 != 0.
@@ -197,12 +221,79 @@ public class MySudokuBoard {
         return lhs + cell + rhs;
     }
 
-    public boolean isValid() {
+    public boolean isValidStringBoard(String board) {
+        if ((ROOT^2) == (SIDE_LENGTH) && ((SIDE_LENGTH^2) == board.length())) {
+            return true;
+        }
         return false;
     }
 
+    public boolean isValid() {
+        for (int i = 0; i < SIDE_LENGTH; i++) {
+            if (!isValidRow(i) || !isValidColumn(i) || !isValidSubSquare(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isValidRow(int rowIndex) {
+        char[] row = new char[SIDE_LENGTH];
+        for (int i = 0; i < row.length; i++) {
+            row[i] = CELLS[rowIndex][i];
+        }
+        return validSet(row);
+    }
+
+    private boolean isValidColumn(int columnIndex) {
+        char[] column = new char[SIDE_LENGTH];
+        for (int i = 0; i < column.length; i++) {
+            column[i] = CELLS[i][columnIndex];
+        }
+        return validSet(column);
+    }
+
+    private boolean isValidSubSquare(int subSquareIndex) {
+//        char[] subSquare = new char[SIDE_LENGTH];
+//        int startRow = (subSquareIndex -  ((subSquareIndex % ROOT) / ROOT));
+//        int startCol = ((subSquareIndex % ROOT) / ROOT );
+//        for (int i = startRow; i < (startRow + ROOT); i++) {
+//            for (int j = startCol; j < (startCol + ROOT); j++) {
+//                subSquare[( ( i  * ROOT) + j)  ] = CELLS[i][j];
+//            }
+//        }
+//        return validSet(subSquare);
+        return true;
+    }
+
+    private boolean validSet(char[] array) {
+        Set<Character> controlSet = new HashSet<>();
+        Set<Character> testSet = new HashSet<>();
+        for (int i = 0; i < array.length; i++) {
+            controlSet.add((char) (i+1));
+        }
+        for (int i = 0; i < array.length; i++) {
+            if (controlSet.contains(array[i])){
+                if (testSet.contains(array[i])) {
+                    return false;
+                }
+            }
+            testSet.add(array[i]);
+        }
+        return true;
+    }
+
     public boolean isSolved() {
-        return false;
+
+
+        for (int i = 0; i < SIDE_LENGTH; i++) {
+            for (int j = 0; j < SIDE_LENGTH; j++) {
+                if (CELLS[i][j] == NIL_CHAR) {
+                    return false;
+                }
+            }
+        }
+        return isValid();
     }
 
 
