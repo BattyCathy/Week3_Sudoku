@@ -1,4 +1,20 @@
 
+/**
+ * @author Austin Roach
+ * CS143
+ * Thu, Feb 3, 2021
+ *
+ * Sudoku: Week 2 of 3
+ *
+ * This program reads data from a text file representing a Sudoku game and formats the data into a more ergonomic reading
+ * experience for humans.
+ *
+ * The game is analyzed to determine whether it isValid, and if so, whether it isSolved
+ *
+ * Solution bot to come.
+ *
+ * Core Topics: Collections, Set/HashSet, Map/HashMap, Multidimensional Arrays, File Processing, UX/Accessibility
+ */
 
 import org.jetbrains.annotations.NotNull;
 
@@ -8,126 +24,231 @@ import java.util.*;
 
 import static java.lang.Math.sqrt;
 
-/**
- * @author Austin Roach
- * CS143
- * Thu, Feb 3, 2022
- *
- * Sudoku: Week 1 of 3
- *
- * This program reads data from a text file representing a Sudoku game and formats the data into a more ergonomic reading
- * experience for humans.
- *
- * Game logic and solution bot to come.
- *
- * Core Topics: Collections, Set/HashSet, Map/HashMap, Multidimensional Arrays, File Processing, UX/Accessibility
- */
-
 public class MySudokuBoard {
-    //2D Array [row][column] of cells on our Sudoku Board
-    private char[][] CELLS;
-    //Number of cells along the edges of our board
-    private final int SIDE_LENGTH;
-    //Sidelength of our sub squares, number of sub squares per side, fourth root of the total number of cells on our board
-    private final int ROOT;
+    //2D Array representing our Sudoku board
+    private final char[][] CELLS;
+    //Side length of our Sudoku board. Square root of total number of cells. A traditional 9 x 9 Sudoku board has 81
+    //cells. sqrt(81) = 9, or the SIDE_LENGTH of a 9 x 9 Sudoku Board
+    private int SIDE_LENGTH;
+    //Root dimension of our board. Side length of our sub-squares. Square root of SIDE_LENGTH.
+    private int ROOT;
+    //String used to read and analyze data from our text file
+    private String boardString;
 
-    //Character used to indicate unsolved cells. Completely cosmetic, change it as you wish. Does not affect game logic.
-    private final char NIL_CHAR = '0';
+    //Set of possible answers for our board - populated with values [1...SIDE_LENGTH]
+    private Set<String> answerSet = new HashSet<>();
+    //Set of characters present on the board. Used for validation and filtering junk data
+    private Set<String> boardChars = new HashSet<>();
 
-    //Constructor method. Takes filePath String parameter and reads file into board.
 
+    //Constructor
     public MySudokuBoard(String filePath) throws FileNotFoundException {
-        String board = getString(filePath);
-        //A sudoku board has side lengths equal to the square root of the total number of cells
-
-        //Sidelength of a sub square. The fourth root of the total number of squares.
-
-        //2D array of cells. Indices are row and column respectively. Because a sudoku game must be "super-square",
-        //the same size parameter may be passed to both fields on construction.
-
-            SIDE_LENGTH = (int) sqrt(board.length());
-            CELLS = populateMatrix(board);
-            ROOT = (int) sqrt(SIDE_LENGTH);
-
-
-
-        //Create new set of possible numbers for our Sudoku game - equal to ROOT^2, sqrt(total number of cells), or SIDE_LENGTH
-        //Currently, this is being used to sort "answered" cells from null cells. It will likely be useful later on when
-        //implementing game logic and testing for valid boards
-
-
+        //A bit of confusion here - I originally wrote populateMatrix with a void return, but found that it was not
+        //actually assigning values to CELLS matrix. All other variables could be assigned without a return. Changing
+        //populateMatrix to return char[][], and using it to assign CELLS worked, but I don't know exactly why - this
+        //solution was the product of messy trial and error.
+        CELLS = populateMatrix(filePath);
     }
 
-    private char[][] populateMatrix(String board) {
-        //Set used because each number is unique
-        Set<Character> numSet = new HashSet<>();
+
+
+    //Majority of our Constructor is contained in this method. Accepts String filePath parameter, reads to String
+    //boardString, and assigns characters to their respective indices in CELLS
+    private char[][] populateMatrix(String filePath) throws FileNotFoundException {
+        //Read file to String
+        boardString = getString(filePath);
+        //Now that we have a String, we can count the letters. The square root of the number of letters in boardString is
+        //SIDE_LENGTH
+        SIDE_LENGTH = (int) sqrt(boardString.length());
+        //We can then take the square root of SIDE_LENGTH to calculate ROOT
+        ROOT = (int) sqrt(SIDE_LENGTH);
+
+        //Declare new 2d array of char with dimensions [SIDE_LENGTH][SIDE_LENGTH]
         char[][] CELLS = new char[SIDE_LENGTH][SIDE_LENGTH];
 
-        //We want the set of integers starting at 1 up to and including SIDE_LENGTH.
-        for (int i = SIDE_LENGTH; i > 0; i--) {
-            numSet.add((char) (i));
+        //Populate answer set with values starting at 1, up to and including SIDE_LENGTH
+        for (int i = 1; i <= SIDE_LENGTH; i++) {
+            answerSet.add(String.valueOf(i));
         }
 
-        //Copy values from board String to CELLS 2D char array
 
-        //i is our "row" iterator
-        for (int i = 0; i < SIDE_LENGTH; i++) {
-            //j is our "column" iterator
-            for (int j = 0; j < SIDE_LENGTH; j++) {
-                //Our board String is a one-dimensional array of char. Using the iterators from our nested for loop
-                //we can organize this data into our two-dimensional array. Each "column" (j) increment of our 2D array
-                //represents one index increment in our board array of char. Once we've advanced SIDE_LENGTH "columns",
-                //we advance to the next row.
+        //Now that we've assigned and declared necessary variables, we are ready to copy values from our boardString
+        //to our CELLS array
 
-                //This logic is achieved by the following: 2dArray[row][column] = 1dArray[(row * COLUMN_MAX_VALUE) + column]
-                char cell = board.charAt( (i * SIDE_LENGTH) + j );
-                if (numSet.contains(cell)) {
-                    CELLS[i][j] = cell;
-                } else {
-                    CELLS[i][j] = NIL_CHAR;
+        //Outer for loop iterates row value
+        for (int row = 0; row < SIDE_LENGTH; row++) {
+            //Inner for loop iterates column value
+            for (int column = 0; column < SIDE_LENGTH; column++) {
+                //This is where we actually assign values from boardString to CELLS
+                //Take note of the parameter used in the charAt method - this is a generically useful formula in
+                //moving between different numerical bases and/or numbers of dimensions
+                CELLS[row][column] = boardString.charAt( (row * SIDE_LENGTH) + column );
+                //Here we check to see if we've seen this character before. If not, we add it to the set of characters
+                //present on our board
+                if (! boardChars.contains(String.valueOf(CELLS[row][column]))) {
+                    boardChars.add(String.valueOf(CELLS[row][column]));
                 }
-
-                //If the newly added character is not  contained in our number set (i.e. 0, !, *, c, etcetera), we will
-                //replace it with our *cosmetic* NIL_CHAR
-
             }
 
         }
         return CELLS;
     }
 
+    //Helper method for reading from a text file and returning text as a String
     @NotNull
     private String getString(String filePath) throws FileNotFoundException {
-        //New Scanner object to read our text file
         Scanner file = new Scanner(new File(filePath));
         //Empty String to store lines from our file
-        String string = "";
+        String board = "";
         //store all lines from file into board String
         while (file.hasNextLine()) {
-            string += file.nextLine();
+            board += file.nextLine();
         }
-        return string;
+        return board;
     }
 
 
+
+    //Parent validation method
+    public boolean isValid() {
+
+
+        if (
+                //Condition to check that the number of different characters on the board does not exceed the number of
+                //possible answers plus whatever character we are using to represent unsolved cells
+                boardChars.size() > answerSet.size() + 1 ||
+                        //Because we cast these values from doubles to ints, if our board has an invalid number of
+                        // characters, the lossy data conversion from double to int should make one or both of these
+                        // mathematical statements incorrect
+                        (ROOT*ROOT) != SIDE_LENGTH ||
+                (SIDE_LENGTH*SIDE_LENGTH) != boardString.length()
+        ) {
+            return false;
+        }
+
+        //Validate rows, columns, subSquares SIDE_LENGTH number of times
+        for (int i = 0; i < SIDE_LENGTH; i++) {
+            if (!isValidRow(i) || !isValidColumn(i) || !isValidSubSquare(i)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    //row, column, and subsquare validation methods all primarily house logic for reading a given form from our 2d array
+    //into a 1d array, which may then be passed to a generic validateSet method
+
+    //Row validation algorithm
+    private boolean isValidRow(int rowIndex) {
+        //Thanks again to Prof. Piper for showing me that an entire row can be represented by omitting column index
+        char[] rowToTest = CELLS[rowIndex];
+        return validSet(rowToTest);
+    }
+
+    //Column validation algorithm
+    private boolean isValidColumn(int columnIndex) {
+        //Very similar to original implementation of above method. The difference brought up some questions for me
+        //regarding the structure of multidimensional arrays - are they hierarchical? Is CELLS[row][column] really an
+        //array of arrays, with row being a parent array of column array children? Does this inform the way people decide
+        // to pivot their data tables?
+        char[] column = new char[SIDE_LENGTH];
+        for (int i = 0; i < column.length; i++) {
+            column[i] = CELLS[i][columnIndex];
+        }
+        return validSet(column);
+    }
+
+    //subSquare validation method
+    private boolean isValidSubSquare(int subSquareIndex) {
+        char[] subSquare = new char[SIDE_LENGTH];
+        int index = 0;
+        //subSquare are the form where ROOT is most useful
+        //Outer for loop iterates row value. Each subSquare has ROOT rows, starting at 0 incrementing ROOT times.
+        for (int i = 0; i < ROOT; i++) {
+
+            //Starting row increases by ROOT every ROOT subSquare index
+            int row = subSquareIndex - (subSquareIndex % ROOT) + i;
+            //Inner for loop iterates column value. Same basic logic as outer for
+            for (int j = 0; j < ROOT; j++) {
+                //Starting column increases by ROOT at every subSquare index.
+                //Once every ROOT times, column is reset to 0
+                int column = (subSquareIndex % ROOT) * ROOT + j;
+                subSquare[index] = CELLS[row][column];
+                index++;
+            }
+        }
+        return validSet(subSquare);
+
+    }
+
+    //Base validation logic for a 1d array - columns, rows, and subSquares all follow the same rules when interpreted as
+    //a 1d array
+    private boolean validSet(char[] array) {
+
+        //Create new empty set to test our input array
+        Set<String> testSet = new HashSet<>();
+
+        //for each cell in our array
+        for (char cell : array) {
+            //if the cell is contained in our answer set. This check is used to overlook rulebreaking duplicates in
+            //unsolved cell symbols.
+            if (answerSet.contains(String.valueOf(cell))) {
+                //check to see if we've already added it to our test set
+                if (testSet.contains(String.valueOf(cell))) {
+                    //if we've seen it before, this array is not valid
+                    return false;
+                }
+            }
+            //After verifying that cell is indeed a unique value, we add it to our testSet and run the test again.
+            testSet.add(String.valueOf(cell));
+        }
+        return true;
+    }
+
+    //check to see if the board isSolved
+    public boolean isSolved() {
+
+        //Declare an empty Map containing answer characters and their integer count
+        Map<Character, Integer> map = new HashMap<>(SIDE_LENGTH);
+
+        //I've done this before. Should probably extract to a method.
+        for (int row = 0; row < SIDE_LENGTH; row++) {
+            for (int column = 0; column < SIDE_LENGTH; column++) {
+                //if the map already contains the character key, increment the int value by one
+                if (map.containsKey(CELLS[row][column])) {
+
+                    map.put(CELLS[row][column], (map.get(CELLS[row][column]) + 1));
+                } else {
+                    //if the key is new, add it with a value of one
+                    map.put(CELLS[row][column], 1);
+                }
+
+            }
+        }
+        //Once we've built our map, check to see that each value in our map is equal to the number of possible answers.
+        for (int val:
+                map.values()) {
+            if (val != answerSet.size()) {
+                return false;
+            }
+        }
+        //Once we find that all answers have been entered the proper number of times, we should double check to see that
+        //answers are indeed valid.
+        return isValid();
+    }
+
+
+
+    //toString methods, one overloaded for custom toString parameters
+
     public String toString() {
-        //declare empty String for the (ROOT + 1) barriers between our ROOT number of sub squares.
-        //Assignment is dependent on the calculation of our lineLength value
-        String subRowWall = "";
-
-        //Basic pattern tiled to populate the space of our sub square grid
-        String wallTile = "`~,";
-
-        //lhs and rhs formatting partitions to visually encapsulate cells
-        String lhsCellWall = "[";
-        String rhsCellWall = "]";
-        //Calculate total number of characters in one line of formatted toString output. Later used to populate the
-        //subRowWall with the correct number of wallTile characters
-        int lineLength = ( SIDE_LENGTH * cellToString('1', lhsCellWall, rhsCellWall).length() ) +
+        return toString("","`~,","[","]", "=");
+    }
+    public String toString(String subRowWall, String wallTile, String lhsCellWall, String rhsCellWall, String NIL_CHAR ) {
+        int lineLength = ( SIDE_LENGTH * cellToString("1", lhsCellWall, rhsCellWall).length() ) +
                 ( (ROOT + 1) * wallTile.length() );
 
-        //While the subRowWall has fewer characters than the "lineLength" of a formatted line, add characters from the
-        //array of characters in the wallTile String
         while (subRowWall.length() < lineLength) {
             for (int i = 0; i < wallTile.length() ; i++) {
                 //Use of the same condition for my if and while loops feels messy/un-D.R.Y. Is there a better way?
@@ -142,20 +263,10 @@ public class MySudokuBoard {
         //Center our board header
         String ret = formatCenter(header, lineLength) + "\n";
 
-        for (int i = 0; i < SIDE_LENGTH; i++) {
+        for (int row = 0; row < SIDE_LENGTH; row++) {
             //outer for loop iterates our "row" value
 
-            int row = i;
 
-            //We want to create a partition across an entire row every three rows starting at row 0. This is achieved
-            //through use of the modulus operand. Let's say that ROOT = 3. Our first row is index 0. 0 % 3 (or any number
-            //for that matter) is equal to zero, thus satisfying our if condition and adding the subRowWall to our String.
-
-            //The next row is at index 1. 1 % 3 is not equal to 0, so the condition does not execute. Our next index, 2,
-            //also does not satisfy the condition, as 2 % 3 != 0.
-
-            //It isn't until we reach index 3 (our fourth index) that we again satisfy the condition and add another
-            //subRowWall to our String
             if (row % ROOT == 0) {
                 ret += subRowWall;
                 ret+='\n';
@@ -163,19 +274,22 @@ public class MySudokuBoard {
 
             //Once we've checked to see whether we need to add a subRowWall (and done so if needed), it is time
             //to add our formatted cells and wallTiles (you might call them "subColumnWalls"
-            for (int j = 0; j < SIDE_LENGTH; j++) {
+            for (int column = 0; column < SIDE_LENGTH; column++) {
                 //Similar logic to the above loop - every ROOT indices, place a wallTile between cells to indicate
                 //separation between sub squares.
 
                 //Short and simple, but slightly redundant. Unsure whether it makes more sense to extract as a method,
                 //or leave hardcoded as is
-                if (j % ROOT == 0) {
+                if (column % ROOT == 0) {
                     ret += wallTile;
                 }
                 //After (maybe) adding a wallTile, cell is added to the String
                 //cellToString() is called on cell to add cellWalls for improved legibility
-                int col = j;
-                ret += cellToString(CELLS[row][col], lhsCellWall, rhsCellWall);
+                String cell = String.valueOf(CELLS[row][column]);
+                if (!answerSet.contains(cell)) {
+                    cell = NIL_CHAR;
+                }
+                ret += cellToString(cell, lhsCellWall, rhsCellWall);
             }
             //Once j, or col have reached lineLength, we have completed our current row and exited our inner for loop
             //The last step is to append one more piece of wall tile to the end - a "capstone" if you will - and finish
@@ -191,14 +305,10 @@ public class MySudokuBoard {
         return ret;
     }
 
-    //Helper method for centering the board title.
-    //Accepts a String to center, and a lineLength in which to center the String
-    //Adds whitespace margins on either side equivalent to half the difference between the lineLength and the String
-    //Returns new centered string
 
-    //If String is larger than lineLength, the method does nothing, simply returning the original String
 
-    private String formatCenter(String s, int lineLength) {
+    //toString helpers
+    public String formatCenter(String s, int lineLength) {
         int diff = lineLength - s.length();
         if (diff > 0) {
 
@@ -212,88 +322,13 @@ public class MySudokuBoard {
     //toString for formatting individual cells.
 
     //Original implementation with default parameters for lhs "[" and rhs "]"
-    private String cellToString(char cell) {
-        return cellToString(cell, "[", "]");
+    public String cellToString(String cell) {
+        return cellToString(cell,"[","]");
     }
 
     //Overloaded implementation offering custom parameters for lhs and rhs
-    private String cellToString(char cell, String lhs, String rhs) {
+    public String cellToString(String cell, String lhs, String rhs) {
         return lhs + cell + rhs;
-    }
-
-    public boolean isValidStringBoard(String board) {
-        if ((ROOT^2) == (SIDE_LENGTH) && ((SIDE_LENGTH^2) == board.length())) {
-            return true;
-        }
-        return false;
-    }
-
-    public boolean isValid() {
-        for (int i = 0; i < SIDE_LENGTH; i++) {
-            if (!isValidRow(i) || !isValidColumn(i) || !isValidSubSquare(i)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean isValidRow(int rowIndex) {
-        char[] row = new char[SIDE_LENGTH];
-        for (int i = 0; i < row.length; i++) {
-            row[i] = CELLS[rowIndex][i];
-        }
-        return validSet(row);
-    }
-
-    private boolean isValidColumn(int columnIndex) {
-        char[] column = new char[SIDE_LENGTH];
-        for (int i = 0; i < column.length; i++) {
-            column[i] = CELLS[i][columnIndex];
-        }
-        return validSet(column);
-    }
-
-    private boolean isValidSubSquare(int subSquareIndex) {
-//        char[] subSquare = new char[SIDE_LENGTH];
-//        int startRow = (subSquareIndex -  ((subSquareIndex % ROOT) / ROOT));
-//        int startCol = ((subSquareIndex % ROOT) / ROOT );
-//        for (int i = startRow; i < (startRow + ROOT); i++) {
-//            for (int j = startCol; j < (startCol + ROOT); j++) {
-//                subSquare[( ( i  * ROOT) + j)  ] = CELLS[i][j];
-//            }
-//        }
-//        return validSet(subSquare);
-        return true;
-    }
-
-    private boolean validSet(char[] array) {
-        Set<Character> controlSet = new HashSet<>();
-        Set<Character> testSet = new HashSet<>();
-        for (int i = 0; i < array.length; i++) {
-            controlSet.add((char) (i+1));
-        }
-        for (int i = 0; i < array.length; i++) {
-            if (controlSet.contains(array[i])){
-                if (testSet.contains(array[i])) {
-                    return false;
-                }
-            }
-            testSet.add(array[i]);
-        }
-        return true;
-    }
-
-    public boolean isSolved() {
-
-
-        for (int i = 0; i < SIDE_LENGTH; i++) {
-            for (int j = 0; j < SIDE_LENGTH; j++) {
-                if (CELLS[i][j] == NIL_CHAR) {
-                    return false;
-                }
-            }
-        }
-        return isValid();
     }
 
 
